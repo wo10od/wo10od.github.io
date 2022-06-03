@@ -2,7 +2,7 @@
 
 <h2 style="text-align: center;">THE DICE</h2>
 
-yourname.github.io/project-name/about
+
  ---- 
 
 2/6/2022
