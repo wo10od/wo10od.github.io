@@ -3,8 +3,9 @@
 
 
 ---- 
+scales
 
-
+![IMG_2850](https://user-images.githubusercontent.com/103264629/173452283-bd5875a8-7a53-4b60-9841-92baa182331d.PNG)
 
 ---- 
 <h2 style="text-align: center;">THE DICE</h2>
