@@ -1,1 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verse Master</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #8195de;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            color: #8195de;
+        }
+
+        h1 {
+            font-size: 2rem;
+            color: #0f0c0c;
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            color: #262b42;
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .controls.hidden {
+            display: none;
+        }
+
+        select, button {
+            padding: 10px 15px;
+            font-size: 1rem;
+            border-radius: 5px;
+            border: 1px solid #bdc3c7;
+            background-color: #ecf0f1;
+            color: #2c3e50;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        select:focus, button:focus {
+            outline: none;
+            border-color: #2980b9;
+        }
+
+        button:hover {
+            background-color: #262b42;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            background-color: #1abc9c;
+        }
+
+        #password-container {
+            text-align: center;
+        }
+
+        #matched-words, #debug {
+            width: 80%;
+            max-width: 600px;
+            margin-top: 15px;
+            padding: 15px;
+            border: 1px solid #bdc3c7;
+            border-radius: 5px;
+            background-color: #fff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        #matched-words {
+            min-height: 50px;
+            text-align: center;
+            font-size: 1.2rem;
+            color: #0f0c0c;
+        }
+
+        #debug {
+            font-size: 1rem;
+            color: #e74c3c;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        select {
+            width: 220px;
+        }
+
+        @media (min-width: 768px) {
+            .controls {
+                flex-direction: row;
+                gap: 20px;
+            }
+
+            #matched-words {
+                text-align: left;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Speech Recognition Word Matcher</h1>
+
+    <div id="password-container">
+        <input type="password" id="password-input" placeholder="Enter password" />
+        <button id="submit-password">Submit Password</button>
+    </div>
+
+    <div id="controls" class="controls hidden">
+        <label for="text-options">Select a verse:</label>
+        <select id="text-options"></select>
+        <div class="button-container">
+            <button id="start-btn">Start Listening</button>
+            <button id="stop-btn">Stop Listening</button>
+            <button id="clear-btn">Clear Text</button>
+            <button id="prev-btn">Previous Verse</button>
+            <button id="next-btn">Next Verse</button>
+            <button id="random-btn">Random Verse</button>
+            <button id="reveal-btn">Reveal Next Word</button>
+        </div>
+    </div>
+
+    <h2>Matched Words</h2>
+    <div id="matched-words"></div>
+
+    <h2>Debug</h2>
+    <div id="debug"></div>
+
+    <script>
+        const verses = {
+            "Revelation 1:3": "Blessed is the one who reads aloud the words of this prophecy, and blessed are those who hear the words of this prophecy and keep what is written in it, because the time is near.",
+            "Revelation 1:7": "Look, he is coming with the clouds, and every eye will see him, even those who pierced him. And all the tribes of the earth will mourn over him. So it is to be. Amen.",
+            "Revelation 1:8": "I am the Alpha and the Omega, says the Lord God, the one who is, who was, and who is to come, the Almighty.",
+            "Revelation 3:5": "In the same way, the one who conquers will be dressed in white clothes, and I will never erase his name from the book of life but will acknowledge his name before my Father and before his angels.",
+            "Revelation 3:10": "Because you have kept my command to endure, I will also keep you from the hour of testing that is going to come on the whole world to test those who live on the earth.",
+            "Revelation 3:11": "I am coming soon. Hold on to what you have, so that no one takes your crown.",
+            "Revelation 3:16": "So, because you are lukewarm, and neither hot nor cold, I am going to vomit you out of my mouth.",
+            "Revelation 3:19": "As many as I love, I rebuke and discipline. So be zealous and repent.",
+            "Revelation 3:20": "See! I stand at the door and knock. If anyone hears my voice and opens the door, I will come in to him and eat with him, and he with me.",
+            "Revelation 3:21": "To the one who conquers I will give the right to sit with me on my throne, just as I also conquered and sat down with my Father on his throne.",
+            "Revelation 4:8": "Holy, holy, holy, Lord God, the Almighty, who was, who is, and who is to come.",
+            "Revelation 4:11": "Our Lord and God, you are worthy to receive glory and honor and power, because you have created all things, and by your will they exist and were created.",
+            "Revelation 5:9": "You are worthy to take the scroll and to open its seals, because you were slaughtered, and you purchased people for God by your blood from every tribe and language and people and nation.",
+            "Revelation 5:12": "Worthy is the Lamb who was slaughtered to receive power and riches and wisdom and strength and honor and glory and blessing!",
+            "Revelation 5:13": "Blessing and honor and glory and power be to the one seated on the throne, and to the Lamb, forever and ever!",
+            "Revelation 7:9": "After this I looked, and there was a vast multitude from every nation, tribe, people, and language, which no one could number, standing before the throne and before the Lamb. They were clothed in white robes with palm branches in their hands.",
+            "Revelation 7:10": "And they cried out in a loud voice: Salvation belongs to our God, who is seated on the throne, and to the Lamb!",
+            "Revelation 7:11": "All the angels stood around the throne, and along with the elders and the four living creatures, they fell facedown before the throne and worshiped God.",
+            "Revelation 7:12": "Amen! Blessing and glory and wisdom and thanksgiving and honor and power and strength be to our God forever and ever. Amen.",
+            "Revelation 7:14": "These are the ones coming out of the great tribulation. They washed their robes and made them white in the blood of the Lamb.",
+            "Revelation 7:15": "For this reason they are before the throne of God, and they serve him day and night in his temple. The one seated on the throne will shelter them.",
+            "Revelation 7:16": "They will no longer hunger; they will no longer thirst; the sun will no longer strike them, nor will any scorching heat.",
+            "Revelation 7:17": "For the Lamb who is at the center of the throne will shepherd them; he will guide them to springs of the waters of life, and God will wipe away every tear from their eyes.",
+            "Revelation 10:7": "But in the days when the seventh angel will blow his trumpet, then the mystery of God will be completed, as he announced to his servants the prophets.",
+            "Revelation 11:15": "The kingdom of the world has become the kingdom of our Lord and of his Christ, and he will reign forever and ever.",
+            "Revelation 11:17": "We give you thanks, Lord God, the Almighty, who is and who was, because you have taken your great power and have begun to reign.",
+            "Revelation 11:18": "The nations were angry, but your wrath has come. The time has come for the dead to be judged, and to give the reward to your servants the prophets, to the saints, and to those who fear your name, both small and great; and the time has come to destroy those who destroy the earth.",
+            "Revelation 12:10": "The salvation and the power and the kingdom of our God and the authority of his Christ have now come, because the accuser of our brothers and sisters, who accuses them before our God day and night, has been thrown down.",
+            "Revelation 12:11": "They conquered him by the blood of the Lamb and by the word of their testimony, for they did not love their lives to the point of death.",
+            "Revelation 12:12": "Rejoice, you heavens, and you who dwell in them! Woe to the earth and the sea, because the devil has come down to you with great fury, because he knows his time is short.",
+            "Revelation 19:5": "Praise our God, all his servants, and the ones who fear him, both small and great!",
+            "Revelation 19:6": "Hallelujah! Because our Lord God, the Almighty, reigns!",
+            "Revelation 19:7": "Let us be glad, rejoice, and give him glory, because the marriage of the Lamb has come, and his bride has prepared herself.",
+            "Revelation 21:3": "Look, God’s dwelling is with humanity, and he will live with them. They will be his peoples, and God himself will be with them and will be their God.",
+            "Revelation 21:4": "He will wipe away every tear from their eyes. Death will be no more; grief, crying, and pain will be no more, because the previous things have passed away.",
+            "Revelation 21:6": "Then he said to me, It is done! I am the Alpha and the Omega, the beginning and the end. I will freely give to the thirsty from the spring of the water of life.",
+            "Revelation 21:22": "I did not see a temple in it, because the Lord God the Almighty and the Lamb are its temple.",
+            "Revelation 22:6": "These words are faithful and true. The Lord, the God of the spirits of the prophets, has sent his angel to show his servants what must soon take place.",
+            "Revelation 22:7": "Look, I am coming soon! Blessed is the one who keeps the words of the prophecy of this book.",
+            "Revelation 22:12": "Look, I am coming soon, and my reward is with me to repay each person according to his work.",
+            "Revelation 22:13": "I am the Alpha and the Omega, the first and the last, the beginning and the end.",
+            "Revelation 22:14": "Blessed are those who wash their robes, so that they may have the right to the tree of life and may enter the city by the gates.",
+            "Revelation 22:16": "I, Jesus, have sent my angel to attest these things to you for the churches. I am the root and descendant of David, the bright morning star.",
+            "Revelation 22:17": "Both the Spirit and the bride say, Come! Let anyone who hears, say, Come! Let the one who is thirsty come. Let the one who desires take the water of life freely.",
+            "Revelation 22:20": "He who testifies about these things says, Yes, I am coming soon. Amen! Come, Lord Jesus!"
+        };
+
+        const textOptions = document.getElementById('text-options');
+        const startBtn = document.getElementById('start-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const clearBtn = document.getElementById('clear-btn');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const randomBtn = document.getElementById('random-btn');
+        const revealBtn = document.getElementById('reveal-btn');
+        const matchedWordsDiv = document.getElementById('matched-words');
+        const debugDiv = document.getElementById('debug');
+        const passwordContainer = document.getElementById('password-container');
+        const controls = document.getElementById('controls');
+        const passwordInput = document.getElementById('password-input');
+        const submitPasswordButton = document.getElementById('submit-password');
+
+        const correctPassword = 'guh';  // The correct password
+
+        let recognition;
+        let isListening = false;
+        let currentText = "";
+        let targetWords = [];
+        let matchedWords = [];
+        let currentWordIndex = 0;
+        let verseList = Object.keys(verses);
+        let currentIndex = 0;
+
+        // Populate dropdown with verses
+        verseList.forEach(verse => {
+            const option = document.createElement('option');
+            option.value = verse;
+            option.textContent = verse;
+            textOptions.appendChild(option);
+        });
+
+        // Check password and show controls
+        submitPasswordButton.addEventListener('click', () => {
+            const enteredPassword = passwordInput.value;
+            if (enteredPassword === correctPassword) {
+                passwordContainer.style.display = 'none';  // Hide password box
+                controls.classList.remove('hidden');  // Show controls
+            } else {
+                alert('Incorrect password. Please try again.');
+            }
+        });
+
+        // Speech recognition setup
+        if ('webkitSpeechRecognition' in window) {
+            recognition = new webkitSpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+
+            recognition.onstart = () => {
+                isListening = true;
+                debugDiv.textContent = 'Listening...';
+            };
+
+            recognition.onend = () => {
+                isListening = false;
+                debugDiv.textContent = 'Stopped listening.';
+            };
+
+            recognition.onresult = (event) => {
+                const transcript = Array.from(event.results)
+                    .map(result => result[0].transcript)
+                    .join(' ');
+
+                debugDiv.textContent = `Transcript: ${transcript}`;
+                matchWords(transcript);
+            };
+        } else {
+            alert('Speech recognition not supported in this browser.');
+        }
+
+        // Start listening
+        startBtn.addEventListener('click', () => {
+            if (recognition && !isListening) {
+                recognition.start();
+            }
+        });
+
+        // Stop listening
+        stopBtn.addEventListener('click', () => {
+            if (recognition && isListening) {
+                recognition.stop();
+            }
+        });
+
+        // Clear matched words
+        clearBtn.addEventListener('click', () => {
+            matchedWords = [];
+            currentWordIndex = 0;
+            updateMatchedWords();
+        });
+
+        // Show previous verse
+        prevBtn.addEventListener('click', () => {
+            currentIndex = (currentIndex - 1 + verseList.length) % verseList.length;
+            updateVerse();
+        });
+
+        // Show next verse
+        nextBtn.addEventListener('click', () => {
+            currentIndex = (currentIndex + 1) % verseList.length;
+            updateVerse();
+        });
+
+        // Show random verse
+        randomBtn.addEventListener('click', () => {
+            currentIndex = Math.floor(Math.random() * verseList.length);
+            updateVerse();
+        });
+
+        // Reveal next word
+        revealBtn.addEventListener('click', () => {
+            if (currentWordIndex < targetWords.length) {
+                matchedWords.push(targetWords[currentWordIndex]);
+                currentWordIndex++;
+                updateMatchedWords();
+            }
+        });
+
+        // Update matched words display
+        function updateMatchedWords() {
+            matchedWordsDiv.innerHTML = matchedWords.join(' ');
+        }
+
+        // Update the verse based on currentIndex
+        function updateVerse() {
+            currentText = verses[verseList[currentIndex]];
+            targetWords = currentText.split(/\s+/);
+            matchedWords = [];
+            currentWordIndex = 0;
+            textOptions.value = verseList[currentIndex];
+            updateMatchedWords();
+        }
+
+        // Match words based on recognition
+        function matchWords(recognizedText) {
+            const recognizedWords = recognizedText.split(/\s+/);
+
+            // Clean recognized words by removing punctuation and converting to lowercase
+            const cleanedRecognizedWords = recognizedWords.map(word => word.replace(/[^a-zA-Z0-9]/g, '').toLowerCase());
+
+            // Use only the last two cleaned words from the transcript
+            const lastTwoWords = cleanedRecognizedWords.slice(-2);
+
+            // Try to match these words with the current verse
+            lastTwoWords.forEach(word => {
+                const expectedWord = targetWords[currentWordIndex].replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+                
+                // Matching function: case-insensitive and punctuation-ignoring match
+                if (word === expectedWord) {
+                    matchedWords.push(targetWords[currentWordIndex]);
+                    currentWordIndex++;
+                    updateMatchedWords();
+                }
+            });
+
+            if (currentWordIndex === targetWords.length) {
+                debugDiv.textContent = 'All words matched!';
+            }
+        }
+    </script>
+</body>
+</html>
 
